@@ -116,11 +116,11 @@ def vis_detections(im, class_name, dets, thresh=0.1):
 def bbox_vote(det):
     if det.shape[0] <= 1:
         return det
-    order = det[:, 4].ravel().argsort()[::-1]
-    det = det[order, :]
+    order = det[:, 4].ravel().argsort()[::-1] # sort by score
+    det = det[order, :] 
     # det = det[np.where(det[:, 4] > 0.2)[0], :]
     dets = []
-    while det.shape[0] > 0:
+    while det.shape[0] > 0: #greedy
         # IOU
         area = (det[:, 2] - det[:, 0] + 1) * (det[:, 3] - det[:, 1] + 1)
         xx1 = np.maximum(det[0, 0], det[:, 0])
@@ -130,18 +130,18 @@ def bbox_vote(det):
         w = np.maximum(0.0, xx2 - xx1 + 1)
         h = np.maximum(0.0, yy2 - yy1 + 1)
         inter = w * h
-        o = inter / (area[0] + area[:] - inter)
+        o = inter / (area[0] + area[:] - inter) # calculated IOU
 
         # get needed merge det and delete these  det
-        merge_index = np.where(o >= 0.45)[0]
-        det_accu = det[merge_index, :]
-        det = np.delete(det, merge_index, 0)
+        merge_index = np.where(o >= 0.45)[0] # 
+        det_accu = det[merge_index, :] # accumulate those IOU > 0.45
+        det = np.delete(det, merge_index, 0) # delete these IOU > 0.45 from the det
 
-        if merge_index.shape[0] <= 1:
+        if merge_index.shape[0] <= 1: # no match, only the box itself
             try:
-                dets = np.row_stack((dets, det_accu))
+                dets = np.row_stack((dets, det_accu)) # concat dets to be accumulated with previous ones
             except:
-                dets = det_accu
+                dets = det_accu # when dets = [], initial 
             continue
         else:
             det_accu[:, 0:4] = det_accu[:, 0:4] * np.tile(det_accu[:, -1:], (1, 4))
